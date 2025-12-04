@@ -119,10 +119,12 @@ If `API_KEY` is not set, authentication is disabled.
 
 ## X-trafik API Integration
 
-The service integrates with X-trafik's REST API:
+The service integrates with X-trafik's REST API. The full API specification is available in `swagger.json`.
 
-- **GET** `/api/Tickets/:id` - Retrieves ticket status
-  - Returns: `{ result: 'OK' | 'Rejected' | 'NotValidated' }`
+**Main endpoint used:**
+- **GET** `/api/Tickets/{id}` - Retrieves ticket status
+  - Returns: `{ id: string | null, result: 'OK' | 'Rejected' | 'NotValidated' }`
+  - See `swagger.json` for complete API documentation
 
 The integration uses client certificate authentication if certificate files are provided via `XTRAFIK_CLIENT_CERT` and `XTRAFIK_CLIENT_KEY` environment variables.
 
