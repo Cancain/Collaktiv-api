@@ -33,7 +33,7 @@ export class XTrafikAPI {
     this.client = axios.create({
       baseURL: this.baseUrl,
       httpsAgent,
-      timeout: 10000,
+      timeout: 30000, // Increased to 30 seconds for testing
       headers: {
         "Content-Type": "application/json",
       },
@@ -108,8 +108,18 @@ export class XTrafikAPI {
         if (!axiosError.response) {
           logger.error("X-trafik API: Network error", {
             message: axiosError.message,
+            code: axiosError.code,
+            config: {
+              url: axiosError.config?.url,
+              baseURL: axiosError.config?.baseURL,
+              method: axiosError.config?.method,
+            },
           });
-          throw new Error(`Network error: ${axiosError.message}`);
+          throw new Error(
+            `Network error: ${axiosError.message}${
+              axiosError.code ? ` (${axiosError.code})` : ""
+            }`
+          );
         }
       }
 
