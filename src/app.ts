@@ -1,4 +1,5 @@
 import express, { Express, Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { logger } from "./utils/logger";
 import { apiKeyAuth } from "./middleware/auth";
 import ticketsRouter from "./routes/tickets";
@@ -6,6 +7,39 @@ import ticketsRouter from "./routes/tickets";
 export const createApp = (): Express => {
   const app = express();
 
+  // CORS configuration
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
+    : [];
+
+  const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (process.env.NODE_ENV === "development") {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.length === 0) {
+        return callback(
+          new Error("CORS_ORIGINS must be configured in production")
+        );
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  };
+
+  app.use(cors(corsOptions));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 

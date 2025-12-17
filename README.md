@@ -117,6 +117,21 @@ Authorization: your-api-key
 
 If `API_KEY` is not set, authentication is disabled.
 
+## CORS Configuration
+
+The API supports Cross-Origin Resource Sharing (CORS) for frontend integration:
+
+- **Development mode**: All origins are allowed for easier testing
+- **Production mode**: Only origins specified in `CORS_ORIGINS` environment variable are allowed
+
+To configure allowed origins in production, set:
+
+```bash
+CORS_ORIGINS=https://your-frontend-domain.com,https://app.your-frontend-domain.com
+```
+
+The API accepts requests with credentials and supports standard HTTP methods (GET, POST, PUT, DELETE, OPTIONS).
+
 ## X-trafik API Integration
 
 The service integrates with X-trafik's REST API. The full API specification is available in `swagger.json`.
@@ -187,6 +202,7 @@ src/
 | `XTRAFIK_CLIENT_KEY` | No | Path to client key file |
 | `PORT` | No | Server port (default: 3000) |
 | `API_KEY` | No | Optional API key for authentication |
+| `CORS_ORIGINS` | No | Comma-separated list of allowed origins (e.g., `https://example.com,https://app.example.com`). In development mode, all origins are allowed. |
 | `LOG_LEVEL` | No | Logging level (default: info) |
 | `NODE_ENV` | No | Environment (development/production) |
 
