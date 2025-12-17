@@ -12,6 +12,9 @@ export const createApp = (): Express => {
     ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
     : [];
 
+  // Allowed subdomain patterns (for Lovable preview domains)
+  const allowedSubdomainPatterns = [".lovable.app", ".lovableproject.com"];
+
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
       if (!origin) {
@@ -28,11 +31,20 @@ export const createApp = (): Express => {
         );
       }
 
+      // Check exact match
       if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+        return callback(null, true);
       }
+
+      // Check subdomain patterns (for Lovable preview domains)
+      const isAllowedSubdomain = allowedSubdomainPatterns.some((pattern) =>
+        origin.endsWith(pattern)
+      );
+      if (isAllowedSubdomain) {
+        return callback(null, true);
+      }
+
+      callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
