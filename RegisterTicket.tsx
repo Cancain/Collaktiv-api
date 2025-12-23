@@ -111,10 +111,13 @@ const RegisterTicket = () => {
       const { data, error } = await supabase.rpc("register_ticket", {
         p_ticket_number: ticketNumber,
         p_points: 10,
+        p_price: parseFloat(price) || null,
       });
 
       if (error) {
-        toast.error("Kunde inte registrera biljett");
+        console.error("Supabase RPC error:", error);
+        const errorMessage = error.message || "Kunde inte registrera biljett";
+        toast.error(`Registrering misslyckades: ${errorMessage}`);
         setIsLoading(false);
         return;
       }
