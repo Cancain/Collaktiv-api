@@ -14,6 +14,9 @@ export const createApp = (): Express => {
 
   // Allowed subdomain patterns (for Lovable preview domains)
   const allowedSubdomainPatterns = [".lovable.app", ".lovableproject.com"];
+  
+  // Allowed production domains
+  const allowedProductionDomains = ["collaktiv.se"];
 
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
@@ -25,13 +28,7 @@ export const createApp = (): Express => {
         return callback(null, true);
       }
 
-      if (allowedOrigins.length === 0) {
-        return callback(
-          new Error("CORS_ORIGINS must be configured in production")
-        );
-      }
-
-      // Check exact match
+      // Check exact match from CORS_ORIGINS
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -44,6 +41,16 @@ export const createApp = (): Express => {
         return callback(null, true);
       }
 
+      // Check production domains (with or without protocol)
+      const originHost = origin.replace(/^https?:\/\//, "");
+      const isAllowedProductionDomain = allowedProductionDomains.some((domain) =>
+        originHost === domain || originHost.endsWith(`.${domain}`)
+      );
+      if (isAllowedProductionDomain) {
+        return callback(null, true);
+      }
+
+      // Origin doesn't match any allowed pattern
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
