@@ -58,6 +58,7 @@ export class XTrafikAPI {
         logger.info("X-trafik API response", {
           status: response.status,
           url: response.config.url,
+          data: response.data, // Log the actual response data from X-trafik
         });
         return response;
       },
@@ -67,6 +68,7 @@ export class XTrafikAPI {
           statusText: error.response?.statusText,
           url: error.config?.url,
           message: error.message,
+          responseData: error.response?.data, // Log error response data from X-trafik
         });
         return Promise.reject(error);
       }
@@ -80,6 +82,15 @@ export class XTrafikAPI {
       const response = await this.client.get<TicketStatusResponse>(
         `/api/Tickets/${ticketId}`
       );
+
+      // Log the raw response from X-trafik API
+      logger.info("X-trafik API raw response received", {
+        ticketId,
+        status: response.status,
+        headers: response.headers,
+        data: response.data,
+        fullResponse: JSON.stringify(response.data, null, 2),
+      });
 
       if (response.status === 200 && response.data) {
         return response.data;
@@ -96,7 +107,11 @@ export class XTrafikAPI {
         }
 
         if (axiosError.response?.status === 404) {
-          logger.warn("X-trafik API: Ticket not found", { ticketId });
+          logger.warn("X-trafik API: Ticket not found", {
+            ticketId,
+            responseData: axiosError.response?.data,
+            responseHeaders: axiosError.response?.headers,
+          });
           throw new Error("Ticket not found");
         }
 
