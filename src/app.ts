@@ -23,7 +23,11 @@ export const createApp = (): Express => {
 
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
+      // Log the origin for debugging
+      logger.info("CORS origin check", { origin, nodeEnv: process.env.NODE_ENV });
+
       if (!origin) {
+        // Allow requests with no origin (e.g., mobile apps, Postman)
         return callback(null, true);
       }
 
@@ -33,6 +37,7 @@ export const createApp = (): Express => {
 
       // Check exact match from CORS_ORIGINS
       if (allowedOrigins.includes(origin)) {
+        logger.info("CORS allowed: exact match", { origin });
         return callback(null, true);
       }
 
@@ -41,6 +46,7 @@ export const createApp = (): Express => {
         origin.endsWith(pattern)
       );
       if (isAllowedSubdomain) {
+        logger.info("CORS allowed: Lovable subdomain", { origin });
         return callback(null, true);
       }
 
@@ -50,15 +56,24 @@ export const createApp = (): Express => {
         originHost === domain || originHost.endsWith(`.${domain}`)
       );
       if (isAllowedProductionDomain) {
+        logger.info("CORS allowed: production domain", { origin, originHost });
         return callback(null, true);
       }
 
       // Origin doesn't match any allowed pattern
+      logger.warn("CORS rejected", { 
+        origin, 
+        originHost,
+        allowedOrigins,
+        allowedProductionDomains 
+      });
       callback(new Error("Not allowed by CORS"));
     },
-    credentials: true,
+    credentials: true, // Allow credentials, but don't require them
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   };
 
   app.use(cors(corsOptions));
@@ -85,6 +100,20 @@ export const createApp = (): Express => {
   app.use("/api", apiKeyAuth, ticketsRouter);
 
   app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    // Handle CORS errors specifically
+    if (err.message === "Not allowed by CORS") {
+      logger.warn("CORS error", {
+        error: err.message,
+        path: req.path,
+        origin: req.headers.origin,
+        method: req.method,
+      });
+      return res.status(403).json({
+        error: "CORS policy violation",
+        message: "Origin not allowed",
+      });
+    }
+
     logger.error("Unhandled error", {
       error: err.message,
       stack: err.stack,
@@ -98,6 +127,12 @@ export const createApp = (): Express => {
   });
 
   app.use((req: Request, res: Response) => {
+    logger.warn("404 - Route not found", {
+      method: req.method,
+      path: req.path,
+      origin: req.headers.origin,
+      url: req.url,
+    });
     res.status(404).json({
       error: "Not found",
       path: req.path,
