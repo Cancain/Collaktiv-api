@@ -4,7 +4,7 @@ import { logger } from "./utils/logger";
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 const requiredEnvVars = ["XTRAFIK_BASE_URL"];
 const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
@@ -18,7 +18,7 @@ if (missingVars.length > 0) {
 
 const app = createApp();
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   logger.info(`X-trafik API server started`, {
     port: PORT,
     environment: process.env.NODE_ENV || "development",

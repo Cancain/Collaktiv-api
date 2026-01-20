@@ -7,6 +7,9 @@ import ticketsRouter from "./routes/tickets";
 export const createApp = (): Express => {
   const app = express();
 
+  // Trust proxy headers from Fly.io (required for proper Host header handling)
+  app.set('trust proxy', true);
+
   // CORS configuration
   const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
