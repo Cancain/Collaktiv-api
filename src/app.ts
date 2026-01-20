@@ -97,7 +97,26 @@ export const createApp = (): Express => {
     });
   });
 
-  app.use("/api", apiKeyAuth, ticketsRouter);
+  // Debug route to verify API routes are working
+  app.get("/api/test", (req: Request, res: Response) => {
+    res.json({ message: "API routes are working", path: req.path });
+  });
+
+  // Log route registration
+  logger.info("Registering API routes", { 
+    hasTicketsRouter: !!ticketsRouter,
+    hasApiKeyAuth: !!apiKeyAuth 
+  });
+
+  app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+    logger.info("API route hit", { 
+      method: req.method, 
+      path: req.path, 
+      url: req.url,
+      originalUrl: req.originalUrl 
+    });
+    next();
+  }, apiKeyAuth, ticketsRouter);
 
   app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     // Handle CORS errors specifically
