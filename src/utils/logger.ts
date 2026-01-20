@@ -23,17 +23,16 @@ export const logger = winston.createLogger({
   format: logFormat,
   defaultMeta: { service: "xtrafik-api" },
   transports: [
-    new winston.transports.File({ filename: "error.log", level: "error" }),
-    new winston.transports.File({ filename: "combined.log" }),
-  ],
-});
-
-if (process.env.NODE_ENV !== "production") {
-  logger.add(
+    // Always log to console (stdout/stderr) for Fly.io/Grafana to capture
     new winston.transports.Console({
       format: consoleFormat,
-    })
-  );
-}
+    }),
+    // Also log to files if needed (optional)
+    ...(process.env.LOG_TO_FILES === "true" ? [
+      new winston.transports.File({ filename: "error.log", level: "error" }),
+      new winston.transports.File({ filename: "combined.log" }),
+    ] : []),
+  ],
+});
 
 export default logger;
