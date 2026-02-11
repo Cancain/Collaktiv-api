@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosError } from "axios";
 import https from "https";
 import fs from "fs";
 import { logger } from "../utils/logger";
-import { TicketStatus, TicketStatusResponse, XTrafikConfig } from "../types";
+import { Ticket, TicketStatus, TicketStatusResponse, UpdateTicketPriceDto, XTrafikConfig } from "../types";
 
 export class XTrafikAPI {
   private client: AxiosInstance;
@@ -138,6 +138,68 @@ export class XTrafikAPI {
         }
       }
 
+      throw error;
+    }
+  }
+
+  async createTicket(ticket: Ticket): Promise<void> {
+    try {
+      const ticketId =
+        typeof ticket.ticketId === "string" && /^\d+$/.test(ticket.ticketId)
+          ? parseInt(ticket.ticketId, 10)
+          : ticket.ticketId;
+      const payload = {
+        id: ticket.id ?? undefined,
+        ticketId,
+        price: ticket.price,
+      };
+      const response = await this.client.post("/api/Tickets", payload);
+      if (response.status !== 201) {
+        throw new Error(`Unexpected response status: ${response.status}`);
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status === 400) {
+          throw new Error("Bad request: invalid ticket data");
+        }
+        if (axiosError.response?.status === 403) {
+          throw new Error("Invalid client certificate - access denied");
+        }
+        if (!axiosError.response) {
+          throw new Error(
+            `Network error: ${axiosError.message}${axiosError.code ? ` (${axiosError.code})` : ""}`
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  async updateTicketPrice(ticketId: string | number, price: number): Promise<void> {
+    try {
+      const response = await this.client.put(`/api/Tickets/${ticketId}`, { price });
+      if (response.status !== 204) {
+        throw new Error(`Unexpected response status: ${response.status}`);
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status === 400) {
+          throw new Error("Bad request: invalid price");
+        }
+        if (axiosError.response?.status === 403) {
+          throw new Error("Invalid client certificate - access denied");
+        }
+        if (axiosError.response?.status === 404) {
+          throw new Error("Ticket not found");
+        }
+        if (!axiosError.response) {
+          throw new Error(
+            `Network error: ${axiosError.message}${axiosError.code ? ` (${axiosError.code})` : ""}`
+          );
+        }
+      }
       throw error;
     }
   }

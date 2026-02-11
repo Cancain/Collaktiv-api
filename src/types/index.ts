@@ -27,7 +27,26 @@ export interface XTrafikConfig {
   clientKey?: string;
 }
 
-// Matches ProblemDetails schema from X-trafik API Swagger spec (for error responses)
+export interface Ticket {
+  id?: string | null;
+  ticketId: number | string;
+  price: number;
+}
+
+export interface UpdateTicketPriceDto {
+  id?: string | null;
+  price: number;
+}
+
+export interface RegisterTicketRequest {
+  ticketId: string | number;
+  price: number;
+}
+
+export interface UpdateTicketPriceRequest {
+  price: number;
+}
+
 export interface ProblemDetails {
   type?: string | null;
   title?: string | null;

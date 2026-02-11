@@ -7,137 +7,67 @@
   "paths": {
     "/api/Tickets/{id}": {
       "get": {
-        "tags": [
-          "Tickets"
-        ],
+        "tags": ["Tickets"],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketStatus"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketStatus"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketStatus"
-                }
-              }
+              "text/plain": { "schema": { "$ref": "#/components/schemas/TicketStatus" } },
+              "application/json": { "schema": { "$ref": "#/components/schemas/TicketStatus" } },
+              "text/json": { "schema": { "$ref": "#/components/schemas/TicketStatus" } }
             }
           },
           "404": {
             "description": "Not Found",
             "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
+              "text/plain": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } },
+              "application/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } },
+              "text/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } }
             }
           }
         }
       },
       "put": {
-        "tags": [
-          "Tickets"
-        ],
+        "tags": ["Tickets"],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTicketPriceDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTicketPriceDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTicketPriceDto"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateTicketPriceDto" } },
+            "text/json": { "schema": { "$ref": "#/components/schemas/UpdateTicketPriceDto" } },
+            "application/*+json": { "schema": { "$ref": "#/components/schemas/UpdateTicketPriceDto" } }
           }
         },
         "responses": {
-          "204": {
-            "description": "No Content"
-          },
+          "204": { "description": "No Content" },
           "400": {
             "description": "Bad Request",
             "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
+              "text/plain": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } },
+              "application/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } },
+              "text/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } }
             }
           },
           "404": {
             "description": "Not Found",
             "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
+              "text/plain": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } },
+              "application/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } },
+              "text/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } }
             }
           }
         }
@@ -145,50 +75,22 @@
     },
     "/api/Tickets": {
       "post": {
-        "tags": [
-          "Tickets"
-        ],
+        "tags": ["Tickets"],
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Ticket"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Ticket"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/Ticket"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/Ticket" } },
+            "text/json": { "schema": { "$ref": "#/components/schemas/Ticket" } },
+            "application/*+json": { "schema": { "$ref": "#/components/schemas/Ticket" } }
           }
         },
         "responses": {
-          "201": {
-            "description": "Created"
-          },
+          "201": { "description": "Created" },
           "400": {
             "description": "Bad Request",
             "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
+              "text/plain": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } },
+              "application/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } },
+              "text/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } }
             }
           }
         }
@@ -200,89 +102,46 @@
       "ProblemDetails": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string",
-            "nullable": true
-          },
-          "title": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "detail": {
-            "type": "string",
-            "nullable": true
-          },
-          "instance": {
-            "type": "string",
-            "nullable": true
-          }
+          "type": { "type": "string", "nullable": true },
+          "title": { "type": "string", "nullable": true },
+          "status": { "type": "integer", "format": "int32", "nullable": true },
+          "detail": { "type": "string", "nullable": true },
+          "instance": { "type": "string", "nullable": true }
         },
         "additionalProperties": {}
       },
       "Ticket": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "nullable": true
-          },
-          "ticketId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "price": {
-            "type": "number",
-            "format": "double"
-          }
+          "id": { "type": "string", "nullable": true },
+          "ticketId": { "type": "integer", "format": "int32" },
+          "price": { "type": "number", "format": "double" }
         },
+        "required": ["ticketId", "price"],
         "additionalProperties": false
       },
       "TicketResult": {
-        "enum": [
-          "OK",
-          "NotValidated",
-          "Rejected"
-        ],
+        "enum": ["OK", "NotValidated", "Rejected"],
         "type": "string"
       },
       "TicketStatus": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "nullable": true
-          },
-          "result": {
-            "$ref": "#/components/schemas/TicketResult"
-          }
+          "id": { "type": "string", "nullable": true },
+          "result": { "$ref": "#/components/schemas/TicketResult" }
         },
         "additionalProperties": false
       },
       "UpdateTicketPriceDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "nullable": true
-          },
-          "price": {
-            "type": "number",
-            "format": "double"
-          }
+          "id": { "type": "string", "nullable": true },
+          "price": { "type": "number", "format": "double" }
         },
+        "required": ["price"],
         "additionalProperties": false
       }
     }
   },
-  "tags": [
-    {
-      "name": "Tickets"
-    }
-  ]
+  "tags": [{ "name": "Tickets" }]
 }
-

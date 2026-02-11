@@ -1,7 +1,11 @@
 import { Router, Request, Response } from "express";
 import { XTrafikAPI } from "../services/xtrafik-api";
 import { logger } from "../utils/logger";
-import { validateTicketRequest } from "../middleware/validation";
+import {
+  validateRegisterTicketRequest,
+  validateTicketRequest,
+  validateUpdateTicketPriceRequest,
+} from "../middleware/validation";
 import { ValidateTicketRequest, ValidateTicketResponse } from "../types";
 
 const router = Router();
@@ -150,6 +154,82 @@ router.post(
         res.status(404).json(response);
       } else {
         res.status(500).json(response);
+      }
+    }
+  }
+);
+
+router.post(
+  "/register-ticket",
+  validateRegisterTicketRequest,
+  async (req: Request, res: Response) => {
+    const { ticketId, price } = req.body;
+    const numPrice = typeof req.body.price === "string" ? parseFloat(req.body.price) : Number(req.body.price);
+
+    try {
+      if (!process.env.XTRAFIK_BASE_URL) {
+        return res.status(500).json({
+          success: false,
+          message: "Server configuration error",
+        });
+      }
+
+      await xtrafikAPI.createTicket({
+        ticketId,
+        price: numPrice,
+      });
+
+      res.status(201).json({
+        success: true,
+        ticketId,
+        price: numPrice,
+        message: "Ticket registered",
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      logger.error("Register ticket failed", { ticketId, error: errorMessage });
+
+      if (errorMessage.includes("Invalid client certificate")) {
+        res.status(502).json({ success: false, message: errorMessage });
+      } else if (errorMessage.includes("Bad request")) {
+        res.status(400).json({ success: false, message: errorMessage });
+      } else {
+        res.status(500).json({ success: false, message: errorMessage });
+      }
+    }
+  }
+);
+
+router.put(
+  "/update-ticket/:id",
+  validateUpdateTicketPriceRequest,
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const numPrice = typeof req.body.price === "string" ? parseFloat(req.body.price) : Number(req.body.price);
+
+    try {
+      if (!process.env.XTRAFIK_BASE_URL) {
+        return res.status(500).json({
+          success: false,
+          message: "Server configuration error",
+        });
+      }
+
+      await xtrafikAPI.updateTicketPrice(id, numPrice);
+
+      res.status(204).send();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      logger.error("Update ticket price failed", { ticketId: id, error: errorMessage });
+
+      if (errorMessage.includes("Invalid client certificate")) {
+        res.status(502).json({ success: false, message: errorMessage });
+      } else if (errorMessage.includes("Bad request")) {
+        res.status(400).json({ success: false, message: errorMessage });
+      } else if (errorMessage.includes("not found")) {
+        res.status(404).json({ success: false, message: errorMessage });
+      } else {
+        res.status(500).json({ success: false, message: errorMessage });
       }
     }
   }
