@@ -225,6 +225,10 @@ router.put(
     const { id } = req.params;
     const numPrice = typeof req.body.price === "string" ? parseFloat(req.body.price) : Number(req.body.price);
 
+    if (!/^\d{7,10}$/.test(id)) {
+      return res.status(400).json({ success: false, message: "Ticket id must be 7–10 digits" });
+    }
+
     try {
       if (!process.env.XTRAFIK_BASE_URL) {
         return res.status(500).json({

@@ -22,6 +22,14 @@ export const validateTicketRequest = (
     return;
   }
 
+  const str = String(ticketId);
+  if (!/^\d{7,10}$/.test(str)) {
+    res.status(400).json({
+      error: "ticketId must be 7–10 digits",
+    });
+    return;
+  }
+
   next();
 };
 
@@ -39,6 +47,12 @@ export const validateRegisterTicketRequest = (
 
   if (typeof ticketId !== "string" && typeof ticketId !== "number") {
     res.status(400).json({ error: "ticketId must be a string or number" });
+    return;
+  }
+
+  const str = String(ticketId);
+  if (!/^\d{7,10}$/.test(str)) {
+    res.status(400).json({ error: "ticketId must be 7–10 digits" });
     return;
   }
 
