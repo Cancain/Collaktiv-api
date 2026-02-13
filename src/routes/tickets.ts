@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { Router, Request, Response } from "express";
 import { XTrafikAPI } from "../services/xtrafik-api";
 import { logger } from "../utils/logger";
@@ -9,6 +10,19 @@ import {
 import { ValidateTicketRequest, ValidateTicketResponse } from "../types";
 
 const router = Router();
+
+const NAMESPACE = "xtrafik-fixkod-v1";
+
+function normalizeTicketId(ticketId: string | number): string {
+  return String(ticketId);
+}
+
+function ticketIdToXtrafikId(ticketId: string | number): string {
+  const hex = createHash("sha256")
+    .update(NAMESPACE + "-" + normalizeTicketId(ticketId))
+    .digest("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
 
 const xtrafikAPI = new XTrafikAPI({
   baseUrl: process.env.XTRAFIK_BASE_URL || "",
@@ -105,7 +119,8 @@ router.post(
         } as ValidateTicketResponse);
       }
 
-      const ticketStatus = await xtrafikAPI.getTicketStatus(ticketId);
+      const xtrafikId = ticketIdToXtrafikId(ticketId);
+      const ticketStatus = await xtrafikAPI.getTicketStatus(xtrafikId);
 
       const response: ValidateTicketResponse = {
         success: true,
@@ -174,7 +189,9 @@ router.post(
         });
       }
 
+      const xtrafikId = ticketIdToXtrafikId(ticketId);
       await xtrafikAPI.createTicket({
+        id: xtrafikId,
         ticketId,
         price: numPrice,
       });
@@ -182,6 +199,7 @@ router.post(
       res.status(201).json({
         success: true,
         ticketId,
+        xtrafikId,
         price: numPrice,
         message: "Ticket registered",
       });
@@ -215,7 +233,8 @@ router.put(
         });
       }
 
-      await xtrafikAPI.updateTicketPrice(id, numPrice);
+      const xtrafikId = ticketIdToXtrafikId(id);
+      await xtrafikAPI.updateTicketPrice(xtrafikId, numPrice);
 
       res.status(204).send();
     } catch (error) {
