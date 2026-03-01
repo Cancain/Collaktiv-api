@@ -170,6 +170,15 @@ export class XTrafikAPI {
         if (axiosError.response?.status === 403) {
           throw new Error("Invalid client certificate - access denied");
         }
+        if (axiosError.response?.status === 500) {
+          logger.error("X-trafik API server error on ticket creation", {
+            status: 500,
+            data: axiosError.response?.data,
+          });
+          throw new Error(
+            "X-trafik could not register the ticket (server error). Please try again later or contact Region Gävleborg."
+          );
+        }
         if (!axiosError.response) {
           throw new Error(
             `Network error: ${axiosError.message}${axiosError.code ? ` (${axiosError.code})` : ""}`
