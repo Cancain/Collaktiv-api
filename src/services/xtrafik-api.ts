@@ -14,8 +14,12 @@ export class XTrafikAPI {
     let httpsAgent;
     if (config.clientCert && config.clientKey) {
       try {
-        const cert = fs.readFileSync(config.clientCert, "utf8");
-        const key = fs.readFileSync(config.clientKey, "utf8");
+        const cert = config.clientCert.includes("-----BEGIN")
+          ? config.clientCert
+          : fs.readFileSync(config.clientCert, "utf8");
+        const key = config.clientKey.includes("-----BEGIN")
+          ? config.clientKey
+          : fs.readFileSync(config.clientKey, "utf8");
 
         httpsAgent = new https.Agent({
           cert,
