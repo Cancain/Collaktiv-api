@@ -171,12 +171,23 @@ export class XTrafikAPI {
           throw new Error("Invalid client certificate - access denied");
         }
         if (axiosError.response?.status === 500) {
+          const errBody =
+            typeof axiosError.response.data === "string"
+              ? axiosError.response.data
+              : JSON.stringify(axiosError.response.data ?? "");
+          const isDuplicate =
+            errBody.includes("PRIMARY KEY") ||
+            errBody.includes("duplicate key") ||
+            errBody.includes("PK_TicketStatus");
           logger.error("X-trafik API server error on ticket creation", {
             status: 500,
+            isDuplicate,
             data: axiosError.response?.data,
           });
           throw new Error(
-            "X-trafik could not register the ticket (server error). Please try again later or contact Region Gävleborg."
+            isDuplicate
+              ? "Denna biljett är redan registrerad hos X-trafik. Du kan inte få poäng två gånger för samma biljett."
+              : "X-trafik kunde inte registrera biljetten (serverfel). Försök igen senare eller kontakta Region Gävleborg."
           );
         }
         if (!axiosError.response) {
