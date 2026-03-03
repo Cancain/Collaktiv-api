@@ -210,6 +210,7 @@ src/
 | `XTRAFIK_BASE_URL` | Yes | Base URL for X-trafik API |
 | `XTRAFIK_CLIENT_CERT` | No | Path to client certificate file or full PEM content |
 | `XTRAFIK_CLIENT_KEY` | No | Path to client key file or full PEM content |
+| `XTRAFIK_CLIENT_KEY_PASSPHRASE` | No | Passphrase for encrypted private key (if applicable) |
 | `PORT` | No | Server port (default: 3000) |
 | `API_KEY` | No | Optional API key for authentication |
 | `CORS_ORIGINS` | No | Comma-separated list of allowed origins (e.g., `https://example.com,https://app.example.com`). In development mode, all origins are allowed. |

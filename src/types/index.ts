@@ -25,6 +25,7 @@ export interface XTrafikConfig {
   baseUrl: string;
   clientCert?: string;
   clientKey?: string;
+  clientKeyPassphrase?: string;
 }
 
 export interface Ticket {

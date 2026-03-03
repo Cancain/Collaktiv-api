@@ -28,6 +28,7 @@ const xtrafikAPI = new XTrafikAPI({
   baseUrl: process.env.XTRAFIK_BASE_URL || "",
   clientCert: process.env.XTRAFIK_CLIENT_CERT,
   clientKey: process.env.XTRAFIK_CLIENT_KEY,
+  clientKeyPassphrase: process.env.XTRAFIK_CLIENT_KEY_PASSPHRASE || undefined,
 });
 
 router.get("/test-connection", async (req: Request, res: Response) => {

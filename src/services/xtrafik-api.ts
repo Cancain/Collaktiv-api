@@ -25,11 +25,16 @@ export class XTrafikAPI {
           ? config.clientKey
           : fs.readFileSync(config.clientKey, "utf8");
 
-        httpsAgent = new https.Agent({
+        const agentOptions: https.AgentOptions = {
           cert,
           key,
           rejectUnauthorized: true,
-        });
+          servername: url.hostname,
+        };
+        if (config.clientKeyPassphrase) {
+          agentOptions.passphrase = config.clientKeyPassphrase;
+        }
+        httpsAgent = new https.Agent(agentOptions);
 
         logger.info("Client certificate loaded for X-trafik API");
       } catch (error) {
