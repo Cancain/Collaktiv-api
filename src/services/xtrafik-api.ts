@@ -10,8 +10,12 @@ export class XTrafikAPI {
 
   constructor(config: XTrafikConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
+    const url = new URL(this.baseUrl);
+    const hostHeader = url.host;
 
     let httpsAgent;
+    const hasCert = !!config.clientCert;
+    const hasKey = !!config.clientKey;
     if (config.clientCert && config.clientKey) {
       try {
         const cert = config.clientCert.includes("-----BEGIN")
@@ -32,14 +36,19 @@ export class XTrafikAPI {
         logger.error("Failed to load client certificate", { error });
         throw new Error("Failed to load client certificate");
       }
+    } else if (hasCert !== hasKey) {
+      logger.warn("X-trafik client cert incomplete: only one of XTRAFIK_CLIENT_CERT and XTRAFIK_CLIENT_KEY is set; requests will not use client certificate");
+    } else {
+      logger.warn("X-trafik client certificate not configured (XTRAFIK_CLIENT_CERT and XTRAFIK_CLIENT_KEY); requests will not use client certificate");
     }
 
     this.client = axios.create({
       baseURL: this.baseUrl,
       httpsAgent,
-      timeout: 30000, // Increased to 30 seconds for testing
+      timeout: 30000,
       headers: {
         "Content-Type": "application/json",
+        Host: hostHeader,
       },
     });
 
