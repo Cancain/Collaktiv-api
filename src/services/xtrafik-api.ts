@@ -28,6 +28,11 @@ export class XTrafikAPI {
         const agentOptions: https.AgentOptions = {
           cert,
           key,
+          ca: config.caCert
+            ? config.caCert.includes("-----BEGIN")
+              ? config.caCert
+              : fs.readFileSync(config.caCert, "utf8")
+            : undefined,
           rejectUnauthorized: true,
           servername: url.hostname,
         };
@@ -36,7 +41,9 @@ export class XTrafikAPI {
         }
         httpsAgent = new https.Agent(agentOptions);
 
-        logger.info("Client certificate loaded for X-trafik API");
+        logger.info("Client certificate loaded for X-trafik API", {
+          withCaBundle: !!config.caCert,
+        });
       } catch (error) {
         logger.error("Failed to load client certificate", { error });
         throw new Error("Failed to load client certificate");

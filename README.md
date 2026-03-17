@@ -145,13 +145,13 @@ The integration uses client certificate authentication if certificate files are 
 
 **Local:** Set paths in `.env` (e.g. `XTRAFIK_CLIENT_CERT=/path/to/client.crt`) or the full PEM content (including `-----BEGIN ... -----END`).
 
-**Production (Fly.io):** Set both as secrets so outbound requests use the cert. Example using PEM content from files:
+**Production (Fly.io):** Set cert, key, and optionally CA bundle as secrets so outbound requests use the full chain. Example:
 
 ```bash
-fly secrets set XTRAFIK_CLIENT_CERT="$(cat client.crt)" XTRAFIK_CLIENT_KEY="$(cat client.key)" -a collaktiv
+fly secrets set XTRAFIK_CLIENT_CERT="$(cat certs/server.crt)" XTRAFIK_CLIENT_KEY="$(cat certs/server.key)" XTRAFIK_CA_CERT="$(cat certs/ca-bundle.crt)" -a collaktiv
 ```
 
-Then restart the app (or let Fly restart it) so it picks up the new secrets. If only one of cert/key is set, the app logs a warning and does not send a client certificate.
+Then restart the app (or let Fly restart it) so it picks up the new secrets. If only one of cert/key is set, the app logs a warning and does not send a client certificate. `XTRAFIK_CA_CERT` (e.g. My_CA_Bundle.ca-bundle) is used to verify X-trafik's server certificate and is recommended for Sectigo/Comodo setups.
 
 ## Logging
 
@@ -210,6 +210,7 @@ src/
 | `XTRAFIK_BASE_URL` | Yes | Base URL for X-trafik API |
 | `XTRAFIK_CLIENT_CERT` | No | Path to client certificate file or full PEM content |
 | `XTRAFIK_CLIENT_KEY` | No | Path to client key file or full PEM content |
+| `XTRAFIK_CA_CERT` | No | Path to CA bundle (e.g. My_CA_Bundle.ca-bundle) used to verify X-trafik's server certificate |
 | `XTRAFIK_CLIENT_KEY_PASSPHRASE` | No | Passphrase for encrypted private key (if applicable) |
 | `PORT` | No | Server port (default: 3000) |
 | `API_KEY` | No | Optional API key for authentication |
