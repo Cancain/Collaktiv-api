@@ -7,9 +7,11 @@ import { Ticket, TicketStatus, TicketStatusResponse, UpdateTicketPriceDto, XTraf
 export class XTrafikAPI {
   private client: AxiosInstance;
   private baseUrl: string;
+  private pathPrefix: string;
 
   constructor(config: XTrafikConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
+    this.pathPrefix = (config.pathPrefix ?? "/api").replace(/\/$/, "");
     const url = new URL(this.baseUrl);
     const hostHeader = url.host;
 
@@ -105,7 +107,7 @@ export class XTrafikAPI {
   ): Promise<TicketStatusResponse> {
     try {
       const response = await this.client.get<TicketStatusResponse>(
-        `/api/Tickets/${ticketId}`
+        `${this.pathPrefix}/Tickets/${ticketId}`
       );
 
       // Log the raw response from X-trafik API
@@ -178,7 +180,7 @@ export class XTrafikAPI {
         ticketId,
         price: ticket.price,
       };
-      const response = await this.client.post("/api/Tickets", payload);
+      const response = await this.client.post(`${this.pathPrefix}/Tickets`, payload);
       if (response.status !== 201) {
         throw new Error(`Unexpected response status: ${response.status}`);
       }
@@ -223,7 +225,7 @@ export class XTrafikAPI {
 
   async updateTicketPrice(ticketId: string | number, price: number): Promise<void> {
     try {
-      const response = await this.client.put(`/api/Tickets/${ticketId}`, { price });
+      const response = await this.client.put(`${this.pathPrefix}/Tickets/${ticketId}`, { price });
       if (response.status !== 204) {
         throw new Error(`Unexpected response status: ${response.status}`);
       }

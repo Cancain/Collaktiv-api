@@ -26,6 +26,7 @@ function ticketIdToXtrafikId(ticketId: string | number): string {
 
 const xtrafikAPI = new XTrafikAPI({
   baseUrl: process.env.XTRAFIK_BASE_URL || "",
+  pathPrefix: process.env.XTRAFIK_PATH_PREFIX,
   clientCert: process.env.XTRAFIK_CLIENT_CERT,
   clientKey: process.env.XTRAFIK_CLIENT_KEY,
   clientKeyPassphrase: process.env.XTRAFIK_CLIENT_KEY_PASSPHRASE || undefined,
@@ -35,11 +36,13 @@ const xtrafikAPI = new XTrafikAPI({
 router.get("/test-connection", async (req: Request, res: Response) => {
   const testTicketId = "4b2f5e56-7d3e-4a9d-8e6e-0f7e2d9d3e8f";
   const baseUrl = process.env.XTRAFIK_BASE_URL || "";
-  const testUrl = `${baseUrl}/api/Tickets/${testTicketId}`;
+  const pathPrefix = (process.env.XTRAFIK_PATH_PREFIX ?? "/api").replace(/\/$/, "");
+  const testUrl = `${baseUrl}${pathPrefix}/Tickets/${testTicketId}`;
 
   const diagnostics = {
     configuration: {
       baseUrl: baseUrl || "NOT SET",
+      pathPrefix: pathPrefix || "(default /api)",
       hasClientCert: !!process.env.XTRAFIK_CLIENT_CERT,
       hasClientKey: !!process.env.XTRAFIK_CLIENT_KEY,
       fullTestUrl: testUrl,
@@ -207,7 +210,15 @@ router.post(
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      logger.error("Register ticket failed", { ticketId, error: errorMessage });
+      const axiosError = error && typeof error === "object" && "response" in error
+        ? (error as { response?: { status?: number; data?: unknown } })
+        : null;
+      logger.error("Register ticket failed", {
+        ticketId,
+        error: errorMessage,
+        xtrafikStatus: axiosError?.response?.status,
+        xtrafikData: axiosError?.response?.data,
+      });
 
       if (errorMessage.includes("Invalid client certificate")) {
         res.status(502).json({ success: false, message: errorMessage });

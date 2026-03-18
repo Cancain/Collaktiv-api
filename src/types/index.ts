@@ -23,6 +23,7 @@ export interface ValidateTicketResponse {
 
 export interface XTrafikConfig {
   baseUrl: string;
+  pathPrefix?: string;
   clientCert?: string;
   clientKey?: string;
   clientKeyPassphrase?: string;

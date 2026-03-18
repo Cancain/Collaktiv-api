@@ -23,6 +23,8 @@ app.listen(PORT, '0.0.0.0', () => {
     port: PORT,
     environment: process.env.NODE_ENV || "development",
     xtrafikBaseUrl: process.env.XTRAFIK_BASE_URL,
+    clientCertConfigured: !!(process.env.XTRAFIK_CLIENT_CERT && process.env.XTRAFIK_CLIENT_KEY),
+    caCertConfigured: !!process.env.XTRAFIK_CA_CERT,
   });
 });
 
