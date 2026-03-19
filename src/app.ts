@@ -1,7 +1,6 @@
 import express, { Express, Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { logger } from "./utils/logger";
-import { apiKeyAuth } from "./middleware/auth";
 import ticketsRouter from "./routes/tickets";
 
 export const createApp = (): Express => {
@@ -71,7 +70,7 @@ export const createApp = (): Express => {
     },
     credentials: true, // Allow credentials, but don't require them
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type"],
     preflightContinue: false,
     optionsSuccessStatus: 204,
   };
@@ -103,10 +102,7 @@ export const createApp = (): Express => {
   });
 
   // Log route registration
-  logger.info("Registering API routes", { 
-    hasTicketsRouter: !!ticketsRouter,
-    hasApiKeyAuth: !!apiKeyAuth 
-  });
+  logger.info("Registering API routes", { hasTicketsRouter: !!ticketsRouter });
 
   app.use("/api", (req: Request, res: Response, next: NextFunction) => {
     logger.info("API route hit", { 
@@ -116,7 +112,7 @@ export const createApp = (): Express => {
       originalUrl: req.originalUrl 
     });
     next();
-  }, apiKeyAuth, ticketsRouter);
+  }, ticketsRouter);
 
   app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     // Handle CORS errors specifically

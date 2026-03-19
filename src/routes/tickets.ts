@@ -1,7 +1,12 @@
 import { createHash } from "crypto";
+import https from "https";
 import { Router, Request, Response } from "express";
 import { XTrafikAPI } from "../services/xtrafik-api";
 import { logger } from "../utils/logger";
+
+function normalizePem(pem: string): string {
+  return (pem || "").replace(/\\n/g, "\n").trim();
+}
 import {
   validateRegisterTicketRequest,
   validateTicketRequest,
@@ -31,6 +36,108 @@ const xtrafikAPI = new XTrafikAPI({
   clientKey: process.env.XTRAFIK_CLIENT_KEY,
   clientKeyPassphrase: process.env.XTRAFIK_CLIENT_KEY_PASSPHRASE || undefined,
   caCert: process.env.XTRAFIK_CA_CERT,
+  apiKey: process.env.XTRAFIK_API_KEY,
+});
+
+router.get("/test-xtrafik-transport", (req: Request, res: Response) => {
+  const baseUrl = process.env.XTRAFIK_BASE_URL || "";
+  const pathPrefix = (process.env.XTRAFIK_PATH_PREFIX ?? "/api").replace(/\/$/, "");
+  const testId = "4b2f5e56-7d3e-4a9d-8e6e-0f7e2d9d3e8f";
+  const url = new URL(`${baseUrl}${pathPrefix}/Tickets/${testId}`);
+  const certPem = process.env.XTRAFIK_CLIENT_CERT?.includes("-----BEGIN") ? normalizePem(process.env.XTRAFIK_CLIENT_CERT) : undefined;
+  const keyPem = process.env.XTRAFIK_CLIENT_KEY?.includes("-----BEGIN") ? normalizePem(process.env.XTRAFIK_CLIENT_KEY) : undefined;
+  const caPem = process.env.XTRAFIK_CA_CERT?.includes("-----BEGIN") ? normalizePem(process.env.XTRAFIK_CA_CERT) : undefined;
+
+  if (!certPem || !keyPem) {
+    return res.status(500).json({ error: "XTRAFIK_CLIENT_CERT/XTRAFIK_CLIENT_KEY not set or not PEM" });
+  }
+
+  const opts: https.RequestOptions = {
+    hostname: url.hostname,
+    port: 443,
+    path: url.pathname,
+    method: "GET",
+    cert: certPem,
+    key: keyPem,
+    ca: caPem,
+    servername: url.hostname,
+    rejectUnauthorized: true,
+  };
+
+  const start = Date.now();
+  const reqOut = https.request(opts, (resp) => {
+    let body = "";
+    resp.on("data", (chunk) => { body += chunk; });
+    resp.on("end", () => {
+      const duration = Date.now() - start;
+      logger.info("test-xtrafik-transport: raw Node https", { statusCode: resp.statusCode, duration });
+      res.json({
+        transport: "Node https (no axios)",
+        statusCode: resp.statusCode,
+        duration: `${duration}ms`,
+        certSent: "cert/key set on TLS options",
+        url: url.toString(),
+        pathPrefix,
+      });
+    });
+  });
+  reqOut.on("error", (err) => {
+    logger.error("test-xtrafik-transport error", { error: err.message });
+    res.status(502).json({ error: err.message, transport: "Node https" });
+  });
+  reqOut.end();
+});
+
+router.post("/test-xtrafik-transport-post", (req: Request, res: Response) => {
+  const baseUrl = process.env.XTRAFIK_BASE_URL || "";
+  const pathPrefix = (process.env.XTRAFIK_PATH_PREFIX ?? "/api").replace(/\/$/, "");
+  const url = new URL(`${baseUrl}${pathPrefix}/Tickets`);
+  const certPem = process.env.XTRAFIK_CLIENT_CERT?.includes("-----BEGIN") ? normalizePem(process.env.XTRAFIK_CLIENT_CERT) : undefined;
+  const keyPem = process.env.XTRAFIK_CLIENT_KEY?.includes("-----BEGIN") ? normalizePem(process.env.XTRAFIK_CLIENT_KEY) : undefined;
+  const caPem = process.env.XTRAFIK_CA_CERT?.includes("-----BEGIN") ? normalizePem(process.env.XTRAFIK_CA_CERT) : undefined;
+
+  if (!certPem || !keyPem) {
+    return res.status(500).json({ error: "XTRAFIK_CLIENT_CERT/XTRAFIK_CLIENT_KEY not set or not PEM" });
+  }
+
+  const body = JSON.stringify({ ticketId: 99999999, price: 0 });
+  const opts: https.RequestOptions = {
+    hostname: url.hostname,
+    port: 443,
+    path: url.pathname,
+    method: "POST",
+    cert: certPem,
+    key: keyPem,
+    ca: caPem,
+    servername: url.hostname,
+    rejectUnauthorized: true,
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(body),
+    },
+  };
+
+  const start = Date.now();
+  const reqOut = https.request(opts, (resp) => {
+    let resBody = "";
+    resp.on("data", (chunk) => { resBody += chunk; });
+    resp.on("end", () => {
+      const duration = Date.now() - start;
+      logger.info("test-xtrafik-transport-post: raw Node https", { statusCode: resp.statusCode, duration });
+      res.json({
+        transport: "Node https POST (no axios)",
+        statusCode: resp.statusCode,
+        duration: `${duration}ms`,
+        url: url.toString(),
+      });
+    });
+  });
+  reqOut.on("error", (err) => {
+    logger.error("test-xtrafik-transport-post error", { error: err.message });
+    res.status(502).json({ error: err.message });
+  });
+  reqOut.write(body);
+  reqOut.end();
 });
 
 router.get("/test-connection", async (req: Request, res: Response) => {

@@ -28,6 +28,7 @@ export interface XTrafikConfig {
   clientKey?: string;
   clientKeyPassphrase?: string;
   caCert?: string;
+  apiKey?: string;
 }
 
 export interface Ticket {

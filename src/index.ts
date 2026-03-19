@@ -19,10 +19,12 @@ if (missingVars.length > 0) {
 const app = createApp();
 
 app.listen(PORT, '0.0.0.0', () => {
+  const pathPrefix = process.env.XTRAFIK_PATH_PREFIX ?? "/api";
   logger.info(`X-trafik API server started`, {
     port: PORT,
     environment: process.env.NODE_ENV || "development",
     xtrafikBaseUrl: process.env.XTRAFIK_BASE_URL,
+    xtrafikPathPrefix: pathPrefix || "(empty)",
     clientCertConfigured: !!(process.env.XTRAFIK_CLIENT_CERT && process.env.XTRAFIK_CLIENT_KEY),
     caCertConfigured: !!process.env.XTRAFIK_CA_CERT,
   });

@@ -38,7 +38,6 @@ XTRAFIK_BASE_URL=https://api.xtrafik.example.com
 XTRAFIK_CLIENT_CERT=/path/to/client.crt
 XTRAFIK_CLIENT_KEY=/path/to/client.key
 PORT=3000
-API_KEY=your-optional-api-key
 ```
 
 ## Running the Application
@@ -101,22 +100,6 @@ Content-Type: application/json
 - `Rejected` - Ticket is invalid or not found
 - `NotValidated` - Could not validate ticket (error occurred)
 
-## Authentication
-
-If `API_KEY` is set in environment variables, all `/api/*` endpoints require authentication via the `Authorization` header:
-
-```bash
-Authorization: Bearer your-api-key
-```
-
-Or simply:
-
-```bash
-Authorization: your-api-key
-```
-
-If `API_KEY` is not set, authentication is disabled.
-
 ## CORS Configuration
 
 The API supports Cross-Origin Resource Sharing (CORS) for frontend integration:
@@ -145,13 +128,19 @@ The integration uses client certificate authentication if certificate files are 
 
 **Local:** Set paths in `.env` (e.g. `XTRAFIK_CLIENT_CERT=/path/to/client.crt`) or the full PEM content (including `-----BEGIN ... -----END`).
 
-**Production (Fly.io):** Set cert, key, and optionally CA bundle as secrets so outbound requests use the full chain. Example:
+**Production (Fly.io):** Set cert and key as secrets. Use the **client certificate from Region Gävleborg (Magnus)** in `cert/` (client.crt, client.key), not the Sectigo cert—their IIS trusts the cert they issued. Use the command line with `$(cat file)` so newlines are preserved. From repo root:
 
 ```bash
-fly secrets set XTRAFIK_CLIENT_CERT="$(cat certs/server.crt)" XTRAFIK_CLIENT_KEY="$(cat certs/server.key)" XTRAFIK_CA_CERT="$(cat certs/ca-bundle.crt)" -a collaktiv
+cd backend
+fly secrets set \
+  XTRAFIK_BASE_URL="https://api-collaktiv.regiongavleborg.se" \
+  XTRAFIK_PATH_PREFIX="/rest/collaktiv_api/api" \
+  XTRAFIK_CLIENT_CERT="$(cat ../cert/client.crt)" \
+  XTRAFIK_CLIENT_KEY="$(cat ../cert/client.key)" \
+  -a collaktiv
 ```
 
-Then restart the app (or let Fly restart it) so it picks up the new secrets. If only one of cert/key is set, the app logs a warning and does not send a client certificate. `XTRAFIK_CA_CERT` (e.g. My_CA_Bundle.ca-bundle) is used to verify X-trafik's server certificate and is recommended for Sectigo/Comodo setups.
+Optionally add `XTRAFIK_CA_CERT` if you have a CA bundle to verify their server. Then deploy or let Fly restart so the app picks up the new secrets.
 
 ## Logging
 
@@ -208,12 +197,13 @@ src/
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `XTRAFIK_BASE_URL` | Yes | Base URL for X-trafik API |
+| `XTRAFIK_PATH_PREFIX` | No | API path prefix (e.g. `/rest/collaktiv_api/api` for prod). Default `/api`. |
+| `XTRAFIK_API_KEY` | No | Bearer token if X-trafik requires it (avoids 401 SecurityTokenValidationException). |
 | `XTRAFIK_CLIENT_CERT` | No | Path to client certificate file or full PEM content |
 | `XTRAFIK_CLIENT_KEY` | No | Path to client key file or full PEM content |
 | `XTRAFIK_CA_CERT` | No | Path to CA bundle (e.g. My_CA_Bundle.ca-bundle) used to verify X-trafik's server certificate |
 | `XTRAFIK_CLIENT_KEY_PASSPHRASE` | No | Passphrase for encrypted private key (if applicable) |
 | `PORT` | No | Server port (default: 3000) |
-| `API_KEY` | No | Optional API key for authentication |
 | `CORS_ORIGINS` | No | Comma-separated list of allowed origins (e.g., `https://example.com,https://app.example.com`). In development mode, all origins are allowed. |
 | `LOG_LEVEL` | No | Logging level (default: info) |
 | `NODE_ENV` | No | Environment (development/production) |
@@ -225,7 +215,6 @@ Example curl request:
 ```bash
 curl -X POST http://localhost:3000/api/validate-ticket \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-api-key" \
   -d '{
     "ticketId": "T123456789"
   }'
