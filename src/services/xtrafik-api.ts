@@ -13,6 +13,7 @@ export class XTrafikAPI {
   private pathPrefix: string;
   private agentOptions: https.AgentOptions | null = null;
   private hostHeader: string;
+  private readonly requestTimeoutMs = 30000;
 
   constructor(config: XTrafikConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
@@ -64,71 +65,104 @@ export class XTrafikAPI {
     }
   }
 
-  async getTicketStatus(
-    ticketId: string | number
-  ): Promise<TicketStatusResponse> {
+  private requestRaw(
+    method: "GET" | "POST" | "PUT",
+    path: string,
+    body?: string
+  ): Promise<{ statusCode?: number; body: string }> {
     if (!this.agentOptions) {
       throw new Error("Client certificate not configured");
     }
-    const url = new URL(`${this.baseUrl}${this.pathPrefix}/Tickets/${ticketId}`);
+    const url = new URL(`${this.baseUrl}${path}`);
+    const headers: Record<string, string | number> = {
+      "Content-Type": "application/json",
+      Host: this.hostHeader,
+    };
+    if (body) {
+      headers["Content-Length"] = Buffer.byteLength(body);
+    }
     const opts: https.RequestOptions = {
       hostname: url.hostname,
       port: 443,
       path: url.pathname,
-      method: "GET",
+      method,
       cert: this.agentOptions.cert,
       key: this.agentOptions.key,
       ca: this.agentOptions.ca,
       servername: url.hostname,
       rejectUnauthorized: this.agentOptions.rejectUnauthorized,
-      headers: {
-        "Content-Type": "application/json",
-        Host: this.hostHeader,
-      },
+      headers,
     };
 
     return new Promise((resolve, reject) => {
+      const startedAt = Date.now();
+      logger.info("X-trafik API request", { method: method.toLowerCase(), url: path });
       const req = https.request(opts, (resp) => {
         let resBody = "";
         resp.on("data", (chunk) => { resBody += chunk; });
         resp.on("end", () => {
-          logger.info("X-trafik API request", { method: "get", url: `${this.pathPrefix}/Tickets/${ticketId}` });
-          logger.info("X-trafik API response", { status: resp.statusCode, url: `${this.pathPrefix}/Tickets/${ticketId}` });
-          if (resp.statusCode === 200) {
-            try {
-              const data = resBody ? JSON.parse(resBody) : {};
-              logger.info("X-trafik API raw response received", { ticketId, status: 200, data });
-              return resolve(data as TicketStatusResponse);
-            } catch {
-              return reject(new Error("Invalid JSON response from X-trafik"));
-            }
-          }
-          if (resp.statusCode === 401 || resp.statusCode === 403) {
-            return reject(new Error("Invalid client certificate - access denied"));
-          }
-          if (resp.statusCode === 404) {
-            logger.warn("X-trafik API: Ticket not found", { ticketId });
-            return reject(new Error("Ticket not found"));
-          }
-          if (resp.statusCode === 500) {
-            return reject(new Error("X-trafik API server error"));
-          }
-          reject(new Error(`Unexpected response status: ${resp.statusCode}`));
+          const durationMs = Date.now() - startedAt;
+          logger.info("X-trafik API response", { status: resp.statusCode, url: path, durationMs });
+          resolve({ statusCode: resp.statusCode, body: resBody });
         });
       });
-      req.on("error", (err) => reject(new Error(`Network error: ${err.message}`)));
-      req.setTimeout(30000, () => {
-        req.destroy();
-        reject(new Error("Request timeout"));
+
+      const hardTimeout = setTimeout(() => {
+        req.destroy(new Error("Request timeout"));
+      }, this.requestTimeoutMs);
+
+      req.on("error", (err) => {
+        clearTimeout(hardTimeout);
+        reject(new Error(`Network error: ${err.message}`));
       });
+      req.on("close", () => {
+        clearTimeout(hardTimeout);
+      });
+
+      if (body) req.write(body);
       req.end();
     });
   }
 
-  async createTicket(ticket: Ticket): Promise<void> {
-    if (!this.agentOptions) {
-      throw new Error("Client certificate not configured");
+  async getTicketStatus(
+    ticketId: string | number
+  ): Promise<TicketStatusResponse> {
+    const path = `${this.pathPrefix}/Tickets/${ticketId}`;
+    let response: { statusCode?: number; body: string };
+    try {
+      response = await this.requestRaw("GET", path);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("Request timeout") || message.includes("Network error")) {
+        response = await this.requestRaw("GET", path);
+      } else {
+        throw error;
+      }
     }
+
+    if (response.statusCode === 200) {
+      try {
+        const data = response.body ? JSON.parse(response.body) : {};
+        logger.info("X-trafik API raw response received", { ticketId, status: 200, data });
+        return data as TicketStatusResponse;
+      } catch {
+        throw new Error("Invalid JSON response from X-trafik");
+      }
+    }
+    if (response.statusCode === 401 || response.statusCode === 403) {
+      throw new Error("Invalid client certificate - access denied");
+    }
+    if (response.statusCode === 404) {
+      logger.warn("X-trafik API: Ticket not found", { ticketId });
+      throw new Error("Ticket not found");
+    }
+    if (response.statusCode === 500) {
+      throw new Error("X-trafik API server error");
+    }
+    throw new Error(`Unexpected response status: ${response.statusCode}`);
+  }
+
+  async createTicket(ticket: Ticket): Promise<void> {
     const ticketId =
       typeof ticket.ticketId === "string" && /^\d+$/.test(ticket.ticketId)
         ? parseInt(ticket.ticketId, 10)
@@ -139,109 +173,35 @@ export class XTrafikAPI {
       price: ticket.price,
     };
     const body = JSON.stringify(payload);
-    const url = new URL(`${this.baseUrl}${this.pathPrefix}/Tickets`);
-    const opts: https.RequestOptions = {
-      hostname: url.hostname,
-      port: 443,
-      path: url.pathname,
-      method: "POST",
-      cert: this.agentOptions.cert,
-      key: this.agentOptions.key,
-      ca: this.agentOptions.ca,
-      servername: url.hostname,
-      rejectUnauthorized: this.agentOptions.rejectUnauthorized,
-      headers: {
-        "Content-Type": "application/json",
-        Host: this.hostHeader,
-        "Content-Length": Buffer.byteLength(body),
-      },
-    };
-
-    return new Promise((resolve, reject) => {
-      const req = https.request(opts, (resp) => {
-        let resBody = "";
-        resp.on("data", (chunk) => { resBody += chunk; });
-        resp.on("end", () => {
-          logger.info("X-trafik API request", { method: "post", url: `${this.pathPrefix}/Tickets` });
-          logger.info("X-trafik API response", { status: resp.statusCode, url: `${this.pathPrefix}/Tickets` });
-          if (resp.statusCode === 201) {
-            return resolve();
-          }
-          if (resp.statusCode === 400) {
-            return reject(new Error("Bad request: invalid ticket data"));
-          }
-          if (resp.statusCode === 401 || resp.statusCode === 403) {
-            return reject(new Error("Invalid client certificate - access denied"));
-          }
-          if (resp.statusCode === 500) {
-            const isDuplicate =
-              resBody.includes("PRIMARY KEY") ||
-              resBody.includes("duplicate key") ||
-              resBody.includes("PK_TicketStatus");
-            return reject(
-              new Error(
-                isDuplicate
-                  ? "Denna biljett är redan registrerad hos X-trafik. Du kan inte få poäng två gånger för samma biljett."
-                  : "X-trafik kunde inte registrera biljetten (serverfel). Försök igen senare eller kontakta Region Gävleborg."
-              )
-            );
-          }
-          reject(new Error(`Unexpected response status: ${resp.statusCode}`));
-        });
-      });
-      req.on("error", (err) => reject(new Error(`Network error: ${err.message}`)));
-      req.setTimeout(30000, () => {
-        req.destroy();
-        reject(new Error("Request timeout"));
-      });
-      req.write(body);
-      req.end();
-    });
+    const response = await this.requestRaw("POST", `${this.pathPrefix}/Tickets`, body);
+    if (response.statusCode === 201) return;
+    if (response.statusCode === 400) {
+      throw new Error("Bad request: invalid ticket data");
+    }
+    if (response.statusCode === 401 || response.statusCode === 403) {
+      throw new Error("Invalid client certificate - access denied");
+    }
+    if (response.statusCode === 500) {
+      const isDuplicate =
+        response.body.includes("PRIMARY KEY") ||
+        response.body.includes("duplicate key") ||
+        response.body.includes("PK_TicketStatus");
+      throw new Error(
+        isDuplicate
+          ? "Denna biljett är redan registrerad hos X-trafik. Du kan inte få poäng två gånger för samma biljett."
+          : "X-trafik kunde inte registrera biljetten (serverfel). Försök igen senare eller kontakta Region Gävleborg."
+      );
+    }
+    throw new Error(`Unexpected response status: ${response.statusCode}`);
   }
 
   async updateTicketPrice(ticketId: string | number, price: number): Promise<void> {
-    if (!this.agentOptions) {
-      throw new Error("Client certificate not configured");
-    }
     const body = JSON.stringify({ price });
-    const url = new URL(`${this.baseUrl}${this.pathPrefix}/Tickets/${ticketId}`);
-    const opts: https.RequestOptions = {
-      hostname: url.hostname,
-      port: 443,
-      path: url.pathname,
-      method: "PUT",
-      cert: this.agentOptions.cert,
-      key: this.agentOptions.key,
-      ca: this.agentOptions.ca,
-      servername: url.hostname,
-      rejectUnauthorized: this.agentOptions.rejectUnauthorized,
-      headers: {
-        "Content-Type": "application/json",
-        Host: this.hostHeader,
-        "Content-Length": Buffer.byteLength(body),
-      },
-    };
-
-    return new Promise((resolve, reject) => {
-      const req = https.request(opts, (resp) => {
-        resp.on("data", () => {});
-        resp.on("end", () => {
-          logger.info("X-trafik API request", { method: "put", url: `${this.pathPrefix}/Tickets/${ticketId}` });
-          logger.info("X-trafik API response", { status: resp.statusCode });
-          if (resp.statusCode === 204) return resolve();
-          if (resp.statusCode === 400) return reject(new Error("Bad request: invalid price"));
-          if (resp.statusCode === 401 || resp.statusCode === 403) return reject(new Error("Invalid client certificate - access denied"));
-          if (resp.statusCode === 404) return reject(new Error("Ticket not found"));
-          reject(new Error(`Unexpected response status: ${resp.statusCode}`));
-        });
-      });
-      req.on("error", (err) => reject(new Error(`Network error: ${err.message}`)));
-      req.setTimeout(30000, () => {
-        req.destroy();
-        reject(new Error("Request timeout"));
-      });
-      req.write(body);
-      req.end();
-    });
+    const response = await this.requestRaw("PUT", `${this.pathPrefix}/Tickets/${ticketId}`, body);
+    if (response.statusCode === 204) return;
+    if (response.statusCode === 400) throw new Error("Bad request: invalid price");
+    if (response.statusCode === 401 || response.statusCode === 403) throw new Error("Invalid client certificate - access denied");
+    if (response.statusCode === 404) throw new Error("Ticket not found");
+    throw new Error(`Unexpected response status: ${response.statusCode}`);
   }
 }
